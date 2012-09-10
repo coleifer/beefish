@@ -14,22 +14,22 @@ from Crypto.Cipher import Blowfish
 from Crypto import Random
 
 
-def _gen_padding(fh):
+def _gen_padding(fh, block_size):
     fh.seek(0, 2)
     buflen = fh.tell()
     fh.seek(0)
-    pad_bytes = 8 - (buflen % 8)
+    pad_bytes = block_size - (buflen % block_size)
     padding = Random.get_random_bytes(pad_bytes - 1)
-    bflag = randrange(6, 248)
-    bflag -= bflag % 8 - pad_bytes
+    bflag = randrange(block_size - 2, 256 - block_size)
+    bflag -= bflag % block_size - pad_bytes
     return padding + chr(bflag)
 
-def _read_padding(buffer):
-    return (ord(buffer[-1]) % 8) or 8
+def _read_padding(buffer, block_size):
+    return (ord(buffer[-1]) % block_size) or block_size
 
 def encrypt(in_buf, out_buf, key, chunk_size=4096):
-    padding = _gen_padding(in_buf)
     cipher = Blowfish.new(key, Blowfish.MODE_ECB)
+    padding = _gen_padding(in_buf, cipher.block_size)
     wrote_padding = False
 
     while 1:
@@ -57,7 +57,7 @@ def decrypt(in_buf, out_buf, key, chunk_size=4096):
             break
 
     if decrypted:
-        padding = _read_padding(decrypted)
+        padding = _read_padding(decrypted, cipher.block_size)
         out_buf.seek(-padding, 2)
         out_buf.truncate()
 
