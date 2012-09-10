@@ -1,6 +1,7 @@
 import getpass
 import optparse
 import os
+import struct
 import sys
 import unittest
 from random import randrange
@@ -14,11 +15,14 @@ from Crypto.Cipher import Blowfish
 from Crypto import Random
 
 
-def _gen_padding(fh, block_size):
+def file_size(fh):
     fh.seek(0, 2)
     buflen = fh.tell()
     fh.seek(0)
-    pad_bytes = block_size - (buflen % block_size)
+    return buflen
+
+def _gen_padding(fh, block_size):
+    pad_bytes = block_size - (file_size(fh) % block_size)
     padding = Random.get_random_bytes(pad_bytes - 1)
     bflag = randrange(block_size - 2, 256 - block_size)
     bflag -= bflag % block_size - pad_bytes
@@ -27,10 +31,19 @@ def _gen_padding(fh, block_size):
 def _read_padding(buffer, block_size):
     return (ord(buffer[-1]) % block_size) or block_size
 
+def generate_iv(block_size):
+    return Random.get_random_bytes(block_size)
+
+def get_cipher(key, iv):
+    return Blowfish.new(key, Blowfish.MODE_CBC, iv)
+
 def encrypt(in_buf, out_buf, key, chunk_size=4096):
-    cipher = Blowfish.new(key, Blowfish.MODE_ECB)
+    iv = generate_iv(Blowfish.block_size)
+    cipher = get_cipher(key, iv)
     padding = _gen_padding(in_buf, cipher.block_size)
     wrote_padding = False
+
+    out_buf.write(iv)
 
     while 1:
         buffer = in_buf.read(chunk_size)
@@ -45,7 +58,9 @@ def encrypt(in_buf, out_buf, key, chunk_size=4096):
             break
 
 def decrypt(in_buf, out_buf, key, chunk_size=4096):
-    cipher = Blowfish.new(key, Blowfish.MODE_ECB)
+    iv = in_buf.read(Blowfish.block_size)
+
+    cipher = get_cipher(key, iv)
     decrypted = ''
     
     while 1:
