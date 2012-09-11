@@ -46,3 +46,9 @@ you can use a shortcut if you like::
 
     # decrypting
     decrypt_file('secrets.enc', 'secrets.dec', 'p@ssword')
+
+
+you can use it from the command-line::
+
+    beefish.py -e secrets.txt secrets.enc
+    beefish.py -d secrets.enc secrets.dec
