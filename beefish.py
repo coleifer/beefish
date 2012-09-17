@@ -15,14 +15,8 @@ from Crypto.Cipher import Blowfish
 from Crypto import Random
 
 
-def file_size(fh):
-    fh.seek(0, 2)
-    buflen = fh.tell()
-    fh.seek(0)
-    return buflen
-
-def _gen_padding(fh, block_size):
-    pad_bytes = block_size - (file_size(fh) % block_size)
+def _gen_padding(file_size, block_size):
+    pad_bytes = block_size - (file_size % block_size)
     padding = Random.get_random_bytes(pad_bytes - 1)
     bflag = randrange(block_size - 2, 256 - block_size)
     bflag -= bflag % block_size - pad_bytes
@@ -40,21 +34,23 @@ def get_cipher(key, iv):
 def encrypt(in_buf, out_buf, key, chunk_size=4096):
     iv = generate_iv(Blowfish.block_size)
     cipher = get_cipher(key, iv)
-    padding = _gen_padding(in_buf, cipher.block_size)
+    bytes_read = 0
     wrote_padding = False
 
     out_buf.write(iv)
 
     while 1:
         buffer = in_buf.read(chunk_size)
+        buffer_len = len(buffer)
+        bytes_read += buffer_len
         if buffer:
-            if len(buffer) < chunk_size:
-                buffer += padding
+            if buffer_len < chunk_size:
+                buffer += _gen_padding(bytes_read, cipher.block_size)
                 wrote_padding = True
             out_buf.write(cipher.encrypt(buffer))
         else:
             if not wrote_padding:
-                out_buf.write(cipher.encrypt(padding))
+                out_buf.write(cipher.encrypt(_gen_padding(bytes_read, cipher.block_size)))
             break
 
 def decrypt(in_buf, out_buf, key, chunk_size=4096):
@@ -62,7 +58,7 @@ def decrypt(in_buf, out_buf, key, chunk_size=4096):
 
     cipher = get_cipher(key, iv)
     decrypted = ''
-    
+
     while 1:
         buffer = in_buf.read(chunk_size)
         if buffer:
@@ -154,6 +150,7 @@ class TestEncryptDecrypt(unittest.TestCase):
                 out_buf = StringIO()
                 dec_buf = StringIO()
                 in_buf.write(num_bytes * 'a')
+                in_buf.seek(0)
                 encrypt(in_buf, out_buf, self.key, i)
                 out_buf.seek(0)
                 decrypt(out_buf, dec_buf, self.key, i)
