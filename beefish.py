@@ -170,6 +170,13 @@ if __name__ == '__main__':
     if options.run_tests:
         unittest.main(argv=sys.argv[:1], verbosity=not options.quiet and 2 or 0)
 
+    if len(args) == 1:
+        if options.encrypt:
+            default = '%s.e' % args[0]
+        else:
+            default = args[0].rstrip('.e')
+        args.append(raw_input('Destination? (%s) ' % default) or default)
+
     if len(args) < 2 or not (options.encrypt or options.decrypt):
         parser.print_help()
         sys.exit(1)
