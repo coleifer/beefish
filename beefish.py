@@ -7,6 +7,15 @@ import sys
 import unittest
 from random import randrange
 
+PY3 = sys.version_info[0] == 3
+if PY3:
+    import builtins
+    print_ = getattr(builtins, 'print')
+else:
+    def print_(s):
+        sys.stdout.write(s)
+        sys.stdout.write('\n')
+
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -188,13 +197,13 @@ if __name__ == '__main__':
             if key == verify:
                 break
             else:
-                print 'Keys did not match'
+                print_('Keys did not match')
     else:
         key = options.key
 
     infile, outfile = args[0], args[1]
     if os.path.exists(outfile):
-        print '%s will be overwritten' % outfile
+        print_('%s will be overwritten' % outfile)
         if raw_input('Continue? yN ') != 'y':
             sys.exit(2)
 
