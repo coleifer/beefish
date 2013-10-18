@@ -11,6 +11,7 @@ PY3 = sys.version_info[0] == 3
 if PY3:
     import builtins
     print_ = getattr(builtins, 'print')
+    raw_input = getattr(builtins, 'input')
 else:
     def print_(s):
         sys.stdout.write(s)
@@ -19,7 +20,10 @@ else:
 try:
     from cStringIO import StringIO
 except ImportError:
-    from StringIO import StringIO
+    if PY3:
+        from io import StringIO
+    else:
+        from StringIO import StringIO
 
 from Crypto.Cipher import Blowfish
 from Crypto import Random
