@@ -13,6 +13,9 @@ setup(
     author='Charles Leifer',
     author_email='coleifer@gmail.com',
     url='http://github.com/coleifer/beefish/',
+    install_requires=[
+        'pycrypto'
+        ]
     py_modules=['beefish'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
