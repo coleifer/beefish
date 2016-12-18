@@ -19,7 +19,7 @@ Alternatively::
 
 Dependencies:
 
-* `pycrypto <https://www.dlitz.net/software/pycrypto/>`_
+* `pycryptodome <https://pycryptodome.readthedocs.io/>`_
 
 
 usage
