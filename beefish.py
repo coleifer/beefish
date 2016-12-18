@@ -17,13 +17,7 @@ else:
         sys.stdout.write(s)
         sys.stdout.write('\n')
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    if PY3:
-        from io import StringIO
-    else:
-        from StringIO import StringIO
+from six.moves import cStringIO as StringIO
 
 from Crypto.Cipher import Blowfish
 from Crypto import Random
