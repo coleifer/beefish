@@ -6,7 +6,7 @@ import struct
 import sys
 import unittest
 from random import randrange
-
+import six
 PY3 = sys.version_info[0] == 3
 if PY3:
     import builtins
@@ -34,10 +34,10 @@ def _gen_padding(file_size, block_size):
     padding = Random.get_random_bytes(pad_bytes - 1)
     bflag = randrange(block_size - 2, 256 - block_size)
     bflag -= bflag % block_size - pad_bytes
-    return padding + chr(bflag)
+    return padding + six.int2byte(bflag)
 
 def _read_padding(buffer, block_size):
-    return (ord(buffer[-1]) % block_size) or block_size
+    return (six.byte2int(buffer[-1]) % block_size) or block_size
 
 def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
