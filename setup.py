@@ -14,7 +14,7 @@ setup(
     author_email='coleifer@gmail.com',
     url='http://github.com/coleifer/beefish/',
     py_modules=['beefish'],
-    install_requires=['pycrypto'],
+    install_requires=['pycryptodome','six'],
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
