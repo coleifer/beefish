@@ -45,7 +45,10 @@ def generate_iv(block_size):
 def get_cipher(key, iv):
     return Blowfish.new(key, Blowfish.MODE_CBC, iv)
 
-def encrypt(in_buf, out_buf, key, chunk_size=4096):
+def encrypt(in_buf, out_buf, key, chunk_size=4096, length=0):
+    if length > 0 and length < chunk_size:
+        raise ValueError('length has to be greater or equal to chunk_size')
+
     iv = generate_iv(Blowfish.block_size)
     cipher = get_cipher(key, iv)
     bytes_read = 0
@@ -54,7 +57,10 @@ def encrypt(in_buf, out_buf, key, chunk_size=4096):
     out_buf.write(iv)
 
     while 1:
-        buffer = in_buf.read(chunk_size)
+        if length > 0 and (length - bytes_read) < chunk_size:
+            buffer = in_buf.read( (length - bytes_read) )
+        else:
+            buffer = in_buf.read(chunk_size)
         buffer_len = len(buffer)
         bytes_read += buffer_len
         if buffer:
@@ -67,14 +73,21 @@ def encrypt(in_buf, out_buf, key, chunk_size=4096):
                 out_buf.write(cipher.encrypt(_gen_padding(bytes_read, cipher.block_size)))
             break
 
-def decrypt(in_buf, out_buf, key, chunk_size=4096):
-    iv = in_buf.read(Blowfish.block_size)
+def decrypt(in_buf, out_buf, key, chunk_size=4096, length=0):
+    if length > 0 and length < chunk_size:
+        raise ValueError('length has to be greater or equal to chunk_size')
 
+    iv = in_buf.read(Blowfish.block_size)
     cipher = get_cipher(key, iv)
     decrypted = ''
 
     while 1:
-        buffer = in_buf.read(chunk_size)
+        if length > 0 and (in_buf.tell() + chunk_size) > length:
+            buffer = in_buf.read( length - in_buf.tell() )
+        elif length > 0 and in_buf.tell() == length:
+            buffer = None
+        else:
+            buffer = in_buf.read(chunk_size)
         if buffer:
             decrypted = cipher.decrypt(buffer)
             out_buf.write(decrypted)
