@@ -32,6 +32,9 @@ def _gen_padding(file_size, block_size):
 
 def _read_padding(buffer, block_size):
     print_(buffer[-1])
+    print_(type(buffer[-1]))
+    print_(buffer)
+    print_(type(buffer))
     print_(block_size)
     print_(type(block_size))
     return (ord(buffer[-1]) % block_size) or block_size
