@@ -72,7 +72,7 @@ def decrypt(in_buf, out_buf, key, chunk_size=4096):
         buffer = in_buf.read(chunk_size)
         if buffer:
             decrypted = cipher.decrypt(buffer)
-            out_buf.write(codecs.encode(decrypted,'utf-8'))
+            out_buf.write(codecs.decode(decrypted,'utf-8'))
         else:
             break
 
