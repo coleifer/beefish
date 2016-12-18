@@ -7,6 +7,7 @@ import sys
 import unittest
 from random import randrange
 import six
+import codecs
 PY3 = sys.version_info[0] == 3
 if PY3:
     import builtins
@@ -71,7 +72,7 @@ def decrypt(in_buf, out_buf, key, chunk_size=4096):
         buffer = in_buf.read(chunk_size)
         if buffer:
             decrypted = cipher.decrypt(buffer)
-            out_buf.write(decrypted)
+            out_buf.write(codecs.encode(decrypted,'utf-8'))
         else:
             break
 
