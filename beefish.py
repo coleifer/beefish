@@ -31,7 +31,7 @@ def _gen_padding(file_size, block_size):
     return padding + six.int2byte(bflag)
 
 def _read_padding(buffer, block_size):
-    return (six.byte2int(buffer[-1]) % block_size) or block_size
+    return (ord(buffer[-1]) % block_size) or block_size
 
 def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
