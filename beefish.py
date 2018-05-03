@@ -34,10 +34,10 @@ def _gen_padding(file_size, block_size):
     padding = Random.get_random_bytes(pad_bytes - 1)
     bflag = randrange(block_size - 2, 256 - block_size)
     bflag -= bflag % block_size - pad_bytes
-    return padding + chr(bflag)
+    return padding + chr(bflag).encode('raw_unicode_escape')
 
 def _read_padding(buffer, block_size):
-    return (ord(buffer[-1]) % block_size) or block_size
+    return (buffer[-1] % block_size) or block_size
 
 def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
