@@ -17,13 +17,7 @@ else:
         sys.stdout.write(s)
         sys.stdout.write('\n')
 
-try:
-    from cStringIO import StringIO
-except ImportError:
-    if PY3:
-        from io import StringIO
-    else:
-        from StringIO import StringIO
+from io import BytesIO
 
 from Crypto.Cipher import Blowfish
 from Crypto import Random
@@ -115,7 +109,7 @@ class TestEncryptDecrypt(unittest.TestCase):
             if os.path.exists(fn):
                 os.unlink(fn)
 
-    def write_bytes(self, num, ch='a'):
+    def write_bytes(self, num, ch=b'a'):
         buf = ch * num
         with open(self.in_filename, 'wb') as fh:
             fh.write(buf)
@@ -140,30 +134,30 @@ class TestEncryptDecrypt(unittest.TestCase):
                 buf, decrypted = self.crypt_data(i, ch)
                 self.assertEqual(buf, decrypted)
 
-        encrypt_flow('a')
-        encrypt_flow('\x00')
-        encrypt_flow('\x01')
-        encrypt_flow('\xff')
+        encrypt_flow(b'a')
+        encrypt_flow(b'\x00')
+        encrypt_flow(b'\x01')
+        encrypt_flow(b'\xff')
 
     def test_key(self):
-        buf, decrypted = self.crypt_data(128, 'a', self.key, self.key+'x')
+        buf, decrypted = self.crypt_data(128, b'a', self.key, self.key+'x')
         self.assertNotEqual(buf, decrypted)
 
     def test_chunk_sizes(self):
         for i in [128, 1024, 2048, 4096]:
             nb = [i - 1, i, i + 1, i * 2, i * 2 + 1]
             for num_bytes in nb:
-                buf, decrypted = self.crypt_data(num_bytes, 'a', chunk_size=i)
+                buf, decrypted = self.crypt_data(num_bytes, b'a', chunk_size=i)
                 self.assertEqual(buf, decrypted)
 
     def test_stringio(self):
         for i in [128, 1024, 2048, 4096]:
             nb = [i - 1, i, i + 1, i * 2, i * 2 + 1]
             for num_bytes in nb:
-                in_buf = StringIO()
-                out_buf = StringIO()
-                dec_buf = StringIO()
-                in_buf.write(num_bytes * 'a')
+                in_buf = BytesIO()
+                out_buf = BytesIO()
+                dec_buf = BytesIO()
+                in_buf.write(num_bytes * b'a')
                 in_buf.seek(0)
                 encrypt(in_buf, out_buf, self.key, i)
                 out_buf.seek(0)
