@@ -5,6 +5,7 @@ import os
 import struct
 import sys
 import unittest
+from hashlib import sha256
 from random import randrange
 
 PY3 = sys.version_info[0] == 3
@@ -12,15 +13,22 @@ if PY3:
     import builtins
     print_ = getattr(builtins, 'print')
     raw_input = getattr(builtins, 'input')
+    unicode_type = str
 else:
+    unicode_type = unicode
     def print_(s):
         sys.stdout.write(s)
         sys.stdout.write('\n')
 
 from io import BytesIO
 
+from Crypto.Cipher import AES
 from Crypto.Cipher import Blowfish
 from Crypto import Random
+
+
+CIPHER_BLOWFISH = 1
+CIPHER_AES = 2
 
 
 def _gen_padding(file_size, block_size):
@@ -36,11 +44,35 @@ def _read_padding(buffer, block_size):
 def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
 
-def get_cipher(key, iv):
+def get_blowfish_cipher(key, iv):
     return Blowfish.new(key, Blowfish.MODE_CBC, iv)
 
-def encrypt(in_buf, out_buf, key, chunk_size=4096):
-    iv = generate_iv(Blowfish.block_size)
+def get_aes_cipher(key, iv):
+    if isinstance(key, unicode_type):
+        key = key.encode('utf-8')
+
+    iv_length = AES.block_size  # 16.
+    key_length = 32
+    key_iv_length = iv_length + key_length
+    d = d_i = b''
+    while len(d) < key_iv_length:
+        d_i = sha256(d_i + key).digest()
+        d += d_i[:16]
+
+    new_key = d[:key_length]
+    new_iv = d[key_length:key_iv_length]
+    return AES.new(new_key, AES.MODE_CBC, new_iv)
+
+CIPHER_MAP = {
+    CIPHER_BLOWFISH: (get_blowfish_cipher, Blowfish.block_size),
+    CIPHER_AES: (get_aes_cipher, AES.block_size),
+}
+
+def encrypt(in_buf, out_buf, key, chunk_size=4096,
+            cipher_type=CIPHER_BLOWFISH):
+    get_cipher, block_size = CIPHER_MAP[cipher_type]
+
+    iv = generate_iv(block_size)
     cipher = get_cipher(key, iv)
     bytes_read = 0
     wrote_padding = False
@@ -53,16 +85,19 @@ def encrypt(in_buf, out_buf, key, chunk_size=4096):
         bytes_read += buffer_len
         if buffer:
             if buffer_len < chunk_size:
-                buffer += _gen_padding(bytes_read, cipher.block_size)
+                buffer += _gen_padding(bytes_read, block_size)
                 wrote_padding = True
             out_buf.write(cipher.encrypt(buffer))
         else:
             if not wrote_padding:
-                out_buf.write(cipher.encrypt(_gen_padding(bytes_read, cipher.block_size)))
+                padding = _gen_padding(bytes_read, block_size)
+                out_buf.write(cipher.encrypt(padding))
             break
 
-def decrypt(in_buf, out_buf, key, chunk_size=4096):
-    iv = in_buf.read(Blowfish.block_size)
+def decrypt(in_buf, out_buf, key, chunk_size=4096,
+            cipher_type=CIPHER_BLOWFISH):
+    get_cipher, block_size = CIPHER_MAP[cipher_type]
+    iv = in_buf.read(block_size)
 
     cipher = get_cipher(key, iv)
     decrypted = ''
@@ -76,21 +111,25 @@ def decrypt(in_buf, out_buf, key, chunk_size=4096):
             break
 
     if decrypted:
-        padding = _read_padding(decrypted, cipher.block_size)
+        padding = _read_padding(decrypted, block_size)
         out_buf.seek(-padding, 2)
         out_buf.truncate()
 
-def encrypt_file(in_file, out_file, key, chunk_size=4096):
+def encrypt_file(in_file, out_file, key, chunk_size=4096,
+                 cipher_type=CIPHER_BLOWFISH):
     with open(in_file, 'rb') as in_fh:
         with open(out_file, 'wb') as out_fh:
-            encrypt(in_fh, out_fh, key, chunk_size)
+            encrypt(in_fh, out_fh, key, chunk_size, cipher_type)
 
-def decrypt_file(in_file, out_file, key, chunk_size=4096):
+def decrypt_file(in_file, out_file, key, chunk_size=4096,
+                 cipher_type=CIPHER_BLOWFISH):
     with open(in_file, 'rb') as in_fh:
         with open(out_file, 'wb') as out_fh:
-            decrypt(in_fh, out_fh, key, chunk_size)
+            decrypt(in_fh, out_fh, key, chunk_size, cipher_type)
 
 class TestEncryptDecrypt(unittest.TestCase):
+    cipher_type = CIPHER_BLOWFISH
+
     def setUp(self):
         self.in_filename = '/tmp/crypt.tmp.in'
         self.out_filename = '/tmp/crypt.tmp.out'
@@ -120,8 +159,10 @@ class TestEncryptDecrypt(unittest.TestCase):
         out_key = out_key or self.key
 
         buf = self.write_bytes(num_bytes, ch)
-        encrypt_file(self.in_filename, self.out_filename, in_key, chunk_size)
-        decrypt_file(self.out_filename, self.dec_filename, out_key, chunk_size)
+        encrypt_file(self.in_filename, self.out_filename, in_key, chunk_size,
+                     self.cipher_type)
+        decrypt_file(self.out_filename, self.dec_filename, out_key, chunk_size,
+                     self.cipher_type)
 
         with open(self.dec_filename, 'rb') as fh:
             decrypted = fh.read()
@@ -130,7 +171,7 @@ class TestEncryptDecrypt(unittest.TestCase):
 
     def test_encrypt_decrypt(self):
         def encrypt_flow(ch):
-            for i in range(17):
+            for i in range(33):
                 buf, decrypted = self.crypt_data(i, ch)
                 self.assertEqual(buf, decrypted)
 
@@ -159,19 +200,26 @@ class TestEncryptDecrypt(unittest.TestCase):
                 dec_buf = BytesIO()
                 in_buf.write(num_bytes * b'a')
                 in_buf.seek(0)
-                encrypt(in_buf, out_buf, self.key, i)
+                encrypt(in_buf, out_buf, self.key, i, self.cipher_type)
                 out_buf.seek(0)
-                decrypt(out_buf, dec_buf, self.key, i)
+                decrypt(out_buf, dec_buf, self.key, i, self.cipher_type)
                 self.assertEqual(in_buf.getvalue(), dec_buf.getvalue())
+
+
+class TestEncryptDecryptAES(TestEncryptDecrypt):
+    cipher_type = CIPHER_AES
 
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage='%prog [-e|-d] INFILE OUTFILE')
-    parser.add_option('-t', '--test', dest='run_tests', action='store_true')
-    parser.add_option('-k', '--key', dest='key', action='store', type='str')
     parser.add_option('-e', '--encrypt', dest='encrypt', action='store_true')
     parser.add_option('-d', '--decrypt', dest='decrypt', action='store_true')
-    parser.add_option('-q', '--quiet', dest='quiet', action='store_true')
+    parser.add_option('-k', '--key', dest='key', action='store', type='str')
+    parser.add_option('-a', '--aes', dest='aes', action='store_true',
+                      help='Use AES256 cipher (default is blowfish).')
+    parser.add_option('-t', '--test', dest='run_tests', action='store_true')
+    parser.add_option('-q', '--quiet', dest='quiet', action='store_true',
+                      help='test output verbosity (when running with -t)')
     (options, args) = parser.parse_args()
 
     if options.run_tests:
@@ -205,7 +253,8 @@ if __name__ == '__main__':
         if raw_input('Continue? yN ') != 'y':
             sys.exit(2)
 
+    cipher_type = CIPHER_AES if options.aes else CIPHER_BLOWFISH
     if options.encrypt:
-        encrypt_file(infile, outfile, key)
+        encrypt_file(infile, outfile, key, cipher_type=cipher_type)
     else:
-        decrypt_file(infile, outfile, key)
+        decrypt_file(infile, outfile, key, cipher_type=cipher_type)
