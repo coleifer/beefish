@@ -226,10 +226,20 @@ if __name__ == '__main__':
         unittest.main(argv=sys.argv[:1], verbosity=not options.quiet and 2 or 0)
 
     if len(args) == 1:
+        if options.aes and args[0].endswith('.e'):
+            print('AES selected, but appears to use blowfish extension.')
+            if raw_input('Use blowfish instead? (Yn) ') != 'n':
+                options.aes = False
+        elif not options.aes and args[0].endswith('.ae'):
+            print('AES not selected, but appears to use AES extension.')
+            if raw_input('Use AES instead? (Yn) ') != 'n':
+                options.aes = True
+
+        ext = '.ae' if options.aes else '.e'
         if options.encrypt:
-            default = '%s.e' % args[0]
+            default = '%s%s' % (args[0], ext)
         else:
-            default = args[0].rstrip('.e')
+            default = args[0].rstrip(ext)
         args.append(raw_input('Destination? (%s) ' % default) or default)
 
     if len(args) < 2 or not (options.encrypt or options.decrypt):
