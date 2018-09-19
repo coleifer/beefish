@@ -205,6 +205,16 @@ class TestEncryptDecrypt(unittest.TestCase):
                 decrypt(out_buf, dec_buf, self.key, i, self.cipher_type)
                 self.assertEqual(in_buf.getvalue(), dec_buf.getvalue())
 
+    def test_cipher_stability(self):
+        get_cipher, block_size = CIPHER_MAP[self.cipher_type]
+        make_cipher = lambda: get_cipher(b'passphrase', b'\x00' * block_size)
+
+        # Test that the same passphrase and IV yield same ciphertext.
+        data = 'a' * block_size * 4
+        crypt_data1 = make_cipher().encrypt(data)
+        crypt_data2 = make_cipher().encrypt(data)
+        self.assertEqual(crypt_data1, crypt_data2)
+
 
 class TestEncryptDecryptAES(TestEncryptDecrypt):
     cipher_type = CIPHER_AES
