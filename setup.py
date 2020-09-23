@@ -7,7 +7,7 @@ f.close()
 
 setup(
     name='beefish',
-    version="0.2.0",
+    version="0.2.1",
     description='simple file encryption using pycrypto',
     long_description=readme,
     author='Charles Leifer',
