@@ -15,7 +15,7 @@ installing
 
 Alternatively::
 
-    pip install -e git+git://github.com/coleifer/beefish.git#egg=beefish
+    pip install -e git+https://github.com/coleifer/beefish.git#egg=beefish
 
 Dependencies:
 
