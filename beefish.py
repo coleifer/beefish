@@ -35,6 +35,16 @@ CIPHER_BLOWFISH = 1
 CIPHER_AES = 2
 
 
+def _to_bytes(data, encoding="utf-8"):
+    """Converts given string to bytes using given encoding.
+    Default encoding is "utf-8"."""
+    if isinstance(data, bytes):
+        return data
+
+    if isinstance(data, str):
+        return data.encode(encoding, errors="replace")
+
+
 def _gen_padding(file_size, block_size):
     pad_bytes = block_size - (file_size % block_size)
     padding = Random.get_random_bytes(pad_bytes - 1)
@@ -49,7 +59,7 @@ def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
 
 def get_blowfish_cipher(key, iv):
-    return Blowfish.new(tobytes(key), Blowfish.MODE_CBC, iv)
+    return Blowfish.new(_to_bytes(key), Blowfish.MODE_CBC, iv)
 
 def get_aes_cipher(key, iv):
     if isinstance(key, unicode_type):
@@ -65,23 +75,12 @@ def get_aes_cipher(key, iv):
 
     new_key = d[:key_length]
     new_iv = d[key_length:key_iv_length]
-    return AES.new(tobytes(new_key), AES.MODE_CBC, new_iv)
+    return AES.new(_to_bytes(new_key), AES.MODE_CBC, new_iv)
 
 CIPHER_MAP = {
     CIPHER_BLOWFISH: (get_blowfish_cipher, Blowfish.block_size),
     CIPHER_AES: (get_aes_cipher, AES.block_size),
 }
-
-
-def tobytes(data, encoding="utf-8"):
-    """Converts given string to bytes using given encoding.
-    Default encoding is "utf-8"."""
-    if isinstance(data, bytes):
-        return data
-
-    if isinstance(data, str):
-        return data.encode(encoding, errors="replace")
-
 
 def encrypt(in_buf, out_buf, key, chunk_size=4096,
             cipher_type=CIPHER_BLOWFISH):
