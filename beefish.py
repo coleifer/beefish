@@ -13,11 +13,6 @@ if PY3:
     print_ = getattr(builtins, 'print')
     raw_input = getattr(builtins, 'input')
     unicode_type = str
-    # PyCrypto uses time.clock internally, which was removed in 3.8. We'll just
-    # patch it in for now.
-    if sys.version_info >= (3, 8, 0):
-        import time
-        time.clock = time.process_time
 else:
     unicode_type = unicode
     def print_(s):
