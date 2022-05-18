@@ -50,7 +50,7 @@ def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
 
 def get_blowfish_cipher(key, iv):
-    return Blowfish.new(key, Blowfish.MODE_CBC, iv)
+    return Blowfish.new(tobytes(key), Blowfish.MODE_CBC, iv)
 
 def get_aes_cipher(key, iv):
     if isinstance(key, unicode_type):
@@ -66,12 +66,23 @@ def get_aes_cipher(key, iv):
 
     new_key = d[:key_length]
     new_iv = d[key_length:key_iv_length]
-    return AES.new(new_key, AES.MODE_CBC, new_iv)
+    return AES.new(tobytes(new_key), AES.MODE_CBC, new_iv)
 
 CIPHER_MAP = {
     CIPHER_BLOWFISH: (get_blowfish_cipher, Blowfish.block_size),
     CIPHER_AES: (get_aes_cipher, AES.block_size),
 }
+
+
+def tobytes(data, encoding="utf-8"):
+    """Converts given string to bytes using given encoding.
+    Default encoding is "utf-8"."""
+    if isinstance(data, bytes):
+        return data
+
+    if isinstance(data, str):
+        return data.encode(encoding, errors="replace")
+
 
 def encrypt(in_buf, out_buf, key, chunk_size=4096,
             cipher_type=CIPHER_BLOWFISH):
@@ -215,7 +226,7 @@ class TestEncryptDecrypt(unittest.TestCase):
         make_cipher = lambda: get_cipher(b'passphrase', b'\x00' * block_size)
 
         # Test that the same passphrase and IV yield same ciphertext.
-        data = 'a' * block_size * 4
+        data = b'a' * block_size * 4
         crypt_data1 = make_cipher().encrypt(data)
         crypt_data2 = make_cipher().encrypt(data)
         self.assertEqual(crypt_data1, crypt_data2)
