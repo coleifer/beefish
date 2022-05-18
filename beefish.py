@@ -2,7 +2,6 @@
 import getpass
 import optparse
 import os
-import struct
 import sys
 import unittest
 from hashlib import sha256
