@@ -2,7 +2,6 @@
 import getpass
 import optparse
 import os
-import struct
 import sys
 import unittest
 from hashlib import sha256
@@ -14,11 +13,6 @@ if PY3:
     print_ = getattr(builtins, 'print')
     raw_input = getattr(builtins, 'input')
     unicode_type = str
-    # PyCrypto uses time.clock internally, which was removed in 3.8. We'll just
-    # patch it in for now.
-    if sys.version_info >= (3, 8, 0):
-        import time
-        time.clock = time.process_time
 else:
     unicode_type = unicode
     def print_(s):
@@ -36,6 +30,16 @@ CIPHER_BLOWFISH = 1
 CIPHER_AES = 2
 
 
+def _to_bytes(data, encoding="utf-8"):
+    """Converts given string to bytes using given encoding.
+    Default encoding is "utf-8"."""
+    if isinstance(data, bytes):
+        return data
+
+    if isinstance(data, str):
+        return data.encode(encoding, errors="replace")
+
+
 def _gen_padding(file_size, block_size):
     pad_bytes = block_size - (file_size % block_size)
     padding = Random.get_random_bytes(pad_bytes - 1)
@@ -50,7 +54,7 @@ def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
 
 def get_blowfish_cipher(key, iv):
-    return Blowfish.new(key, Blowfish.MODE_CBC, iv)
+    return Blowfish.new(_to_bytes(key), Blowfish.MODE_CBC, iv)
 
 def get_aes_cipher(key, iv):
     if isinstance(key, unicode_type):
@@ -66,7 +70,7 @@ def get_aes_cipher(key, iv):
 
     new_key = d[:key_length]
     new_iv = d[key_length:key_iv_length]
-    return AES.new(new_key, AES.MODE_CBC, new_iv)
+    return AES.new(_to_bytes(new_key), AES.MODE_CBC, new_iv)
 
 CIPHER_MAP = {
     CIPHER_BLOWFISH: (get_blowfish_cipher, Blowfish.block_size),
@@ -215,7 +219,7 @@ class TestEncryptDecrypt(unittest.TestCase):
         make_cipher = lambda: get_cipher(b'passphrase', b'\x00' * block_size)
 
         # Test that the same passphrase and IV yield same ciphertext.
-        data = 'a' * block_size * 4
+        data = b'a' * block_size * 4
         crypt_data1 = make_cipher().encrypt(data)
         crypt_data2 = make_cipher().encrypt(data)
         self.assertEqual(crypt_data1, crypt_data2)

@@ -1,7 +1,7 @@
 beefish
 =======
 
-Easy file encryption using pycrypto
+Easy file encryption using pycryptodome
 
 .. image:: http://media.charlesleifer.com/blog/photos/beefish.jpg
 
@@ -11,7 +11,7 @@ installing
 
 ::
 
-    pip install beefish pycrypto
+    pip install beefish pycryptodome
 
 Alternatively::
 
@@ -19,7 +19,7 @@ Alternatively::
 
 Dependencies:
 
-* `pycrypto <https://www.dlitz.net/software/pycrypto/>`_
+* `pycryptodome <https://www.pycryptodome.org/>`_
 
 
 command-line options
@@ -69,7 +69,7 @@ you can use it from the command-line::
     beefish.py -e secrets.txt secrets.enc
     beefish.py -d secrets.enc secrets.dec
 
-to use AES-256 cipher instead of the default, which is blowfish:
+to use AES-256 cipher instead of the default, which is blowfish::
 
     beefish.py -a -e secrets.txt
     beefish.py -a -d secrets.encrypted
