@@ -69,7 +69,7 @@ you can use it from the command-line::
     beefish.py -e secrets.txt secrets.enc
     beefish.py -d secrets.enc secrets.dec
 
-to use AES-256 cipher instead of the default, which is blowfish:
+to use AES-256 cipher instead of the default, which is blowfish::
 
     beefish.py -a -e secrets.txt
     beefish.py -a -d secrets.encrypted
