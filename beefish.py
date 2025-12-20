@@ -27,9 +27,14 @@ else:
 
 from io import BytesIO
 
-from Crypto.Cipher import AES
-from Crypto.Cipher import Blowfish
-from Crypto import Random
+try:
+    from Crypto.Cipher import AES
+    from Crypto.Cipher import Blowfish
+    from Crypto import Random
+except ImportError:
+    from Cryptodome.Cipher import AES
+    from Cryptodome.Cipher import Blowfish
+    from Cryptodome import Random
 
 
 CIPHER_BLOWFISH = 1
