@@ -50,6 +50,8 @@ def generate_iv(block_size):
     return Random.get_random_bytes(block_size)
 
 def get_blowfish_cipher(key, iv):
+    if isinstance(key, unicode_type):
+        key = key.encode('utf8')
     return Blowfish.new(key, Blowfish.MODE_CBC, iv)
 
 def get_aes_cipher(key, iv):
@@ -235,6 +237,8 @@ if __name__ == '__main__':
     parser.add_option('-t', '--test', dest='run_tests', action='store_true')
     parser.add_option('-q', '--quiet', dest='quiet', action='store_true',
                       help='test output verbosity (when running with -t)')
+    parser.add_option('-x', '--delete-original', dest='delete_original',
+                      action='store_true', help='Delete original file.')
     (options, args) = parser.parse_args()
 
     if options.run_tests:
@@ -283,3 +287,6 @@ if __name__ == '__main__':
         encrypt_file(infile, outfile, key, cipher_type=cipher_type)
     else:
         decrypt_file(infile, outfile, key, cipher_type=cipher_type)
+
+    if options.delete_original:
+        os.remove(infile)
